@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace main
 {
-    public partial class Form2 : Form
+    public partial class Form4 : Form
     {
         private readonly Circle[] circles;
         private Bitmap bitmap;
@@ -20,36 +20,18 @@ namespace main
         private int offsetY = 0;   // Смещение по Y
         private bool showGrid = false; // Флаг для отображения координатной сетки
         private bool showCoordGrid = false;
-        private bool backInfo;
-        private readonly int methodCircuitNum;
-        private readonly int methodPaintingNum;
+        private bool backInfo = true;
+        private readonly int methodCircuitNum = 1;
+        private int methodPaintingNum = 0;
+        private int currentCircleIndex = 0; // Индекс текущей окружности
 
-        public Form2(int methodCircuitNum, int methodPaintingNum, bool backInfo)
+        public Form4()
         {
             this.ClientSize = new Size(800, 800); // Размер окна
-            this.methodCircuitNum = methodCircuitNum;
-            this.methodPaintingNum = methodPaintingNum;
-            this.backInfo = backInfo;
             this.circles = new Circle[]
             {
-                new Circle(0, 0, 3, 139, 69, 19), // Коричневый цвет
-                new Circle(0, 5, 2, 139, 69, 19),
-                new Circle(3.8, 1.5, 1.3, 139, 69, 19),
-                new Circle(3.5, -3, 1.8, 139, 69, 19),
-                new Circle(-3.8, 1.5, 1.3, 139, 69, 19),
-                new Circle(-3.5, -3, 1.8, 139, 69, 19),
-                new Circle(2.1, 6.7, 0.7, 139, 69, 19),
-                new Circle(-2.1, 6.7, 0.7, 139, 69, 19),
-                new Circle(3.5, -3, 0.9, 255, 165, 0), // Тёпло-жёлтый цвет
-                new Circle(-3.5, -3, 0.9, 255, 165, 0),
-                new Circle(3.8, 1.5, 0.7, 255, 165, 0),
-                new Circle(-3.8, 1.5, 0.7, 255, 165, 0),
-                new Circle(2.1, 6.7, 0.5, 255, 165, 0),
-                new Circle(-2.1, 6.7, 0.5, 255, 165, 0),
-                new Circle(0, 4.5, 0.9, 255, 165, 0),
-                new Circle(1, 5.8, 0.4, 255, 255, 255), // Белый цвет
-                new Circle(1, 5.8, 0.15, 0, 0, 0),      // Чёрный цвет
-                new Circle(0, 4.8, 0.2, 0, 0, 0),
+                new Circle(0, 0, 0.8, 139, 69, 19), // Коричневый цвет
+                new Circle(0, 0, 1, 255, 165, 0),
             };
             this.Paint += new PaintEventHandler(DrawAllCirclesWithGrid);
             this.KeyDown += new KeyEventHandler(OnKeyDown); // Обработка клавиш
@@ -57,44 +39,11 @@ namespace main
 
         private void DrawAllCirclesWithGrid(object sender, PaintEventArgs e)
         {
-            int numCircle = 0;
             bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
-            //DrawGrid();
-            foreach (var circle in circles)
-            {
-                long tickDrawCircle = DrawCircle(circle);
-                long tickFillCircle = FillCircle(circle); // Вызов закраски
-
-                if (backInfo == true)
-                {
-                    String drawString = $"{numCircle + 1}: {tickDrawCircle}";
-
-                    // Create font and brush.
-                    Font drawFont = new Font("Arial", 10);
-                    SolidBrush drawBrush = new SolidBrush(Color.Black);
-
-                    // Create point for upper-left corner of drawing.
-                    float a = 0.0F;
-                    float b = 0.0F + (numCircle * 12);
-                    // Draw string to screen.
-                    e.Graphics.DrawString(drawString, drawFont, drawBrush, a, b);
-
-                    String drawString2 = $"{numCircle + 1}: {tickFillCircle}";
-
-                    // Create font and brush.
-                    Font drawFont2 = new Font("Arial", 10);
-                    SolidBrush drawBrush2 = new SolidBrush(Color.Black);
-
-                    // Create point for upper-left corner of drawing.
-                    float a2 = 80.0F;
-                    float b2 = 0.0F + (numCircle * 12);
-                    // Draw string to screen.
-                    e.Graphics.DrawString(drawString2, drawFont2, drawBrush2, a2, b2);
-                }
-                e.Graphics.DrawImage(bitmap, 0, 0);
-
-                numCircle++;
-            }
+            Circle circle = circles[currentCircleIndex]; // Рисуем только текущую окружность
+            long tickDrawCircle = DrawCircle(circle);
+            long tickFillCircle = FillCircle(circle); // Вызов закраски
+            e.Graphics.DrawImage(bitmap, 0, 0);
             if (showGrid && pixelSize == 5) DrawCoordinateGrid(); // Координатная сетка при масштабе 5x
             if (showCoordGrid) DrawGrid();
             e.Graphics.DrawImage(bitmap, 0, 0);
@@ -221,6 +170,7 @@ namespace main
 
         private long FillCircle(Circle circle)
         {
+            pixelCount = 0; // Сброс счётчика пикселей перед началом закраски
             Stopwatch stopwatch2 = new Stopwatch();
             stopwatch2.Start();
             if (methodPaintingNum == 0)
@@ -238,6 +188,7 @@ namespace main
 
             stopwatch2.Stop();
             long tickFillCircle = stopwatch2.ElapsedTicks;
+            Console.WriteLine($"Закрашено пикселей: {pixelCount}"); // Выводим количество пикселей
             return (tickFillCircle);
         }
 
@@ -369,7 +320,7 @@ namespace main
                 }
             }
         }
-
+        private int pixelCount = 0; // Счетчик закрашенных пикселей
         private void SetPixelBlock(int x, int y, Color color, int size)
         {
             for (int dx = 0; dx < size; dx++)
@@ -381,6 +332,7 @@ namespace main
                     if (px >= 0 && px < bitmap.Width && py >= 0 && py < bitmap.Height)
                     {
                         bitmap.SetPixel(px, py, color);
+                        pixelCount++; // Увеличиваем счетчик при закраске пикселя
                     }
                 }
             }
@@ -422,6 +374,12 @@ namespace main
                         backInfo = true;
                     else
                         backInfo = false;
+                    break;
+                case Keys.B:
+                    methodPaintingNum = (methodPaintingNum + 1) % 3; 
+                    break;
+                case Keys.V:
+                    currentCircleIndex = (currentCircleIndex + 1) % circles.Length; // Переход к следующей окружности
                     break;
             }
             Invalidate();

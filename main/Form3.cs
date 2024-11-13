@@ -22,7 +22,10 @@ namespace main
         private bool showGrid = false; // Флаг для отображения координатной сетки
         private bool showCoordGrid = false;
         private bool backInfo;
-        private int methodCircuitNum = 1;
+        private int methodCircuitNum =  0;
+        private int countAngle = 0;
+        double[] angle_alpha = { 0, Math.PI / 4 };
+        double[] angle_beta = { -Math.PI / 2, -Math.PI / 3 };
 
         public Form3()
         {
@@ -39,8 +42,9 @@ namespace main
         private void DrawAllCirclesWithGrid(object sender, PaintEventArgs e)
         {
             bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
-            double alpha = 0; // начальный угол в радианах
-            double beta = -Math.PI / 2; // конечный угол в радианах
+            double alpha = angle_alpha[countAngle]; // начальный угол в радианах
+            double beta = angle_beta[countAngle]; // конечный угол в радианах
+            Console.WriteLine($"Количество пикселей: {beta}");
             foreach (var circle in circles)
             {
                 var (pixelCount, arcLength) = DrawCircleWithAngle(circle, alpha, beta, e);
@@ -135,17 +139,15 @@ namespace main
             if (methodCircuitNum == 0)
             {
                 // Метод полярных координат
-                double step = 0.01;
-                for (double theta = 0; theta < 2 * Math.PI; theta += step)
+                double step = 1.0 / radiusInPixels; // Шаг зависит от радиуса
+                for (double theta = alpha; theta <= beta; theta += step)
                 {
-                    if (!IsAngleInRange(theta)) continue;
-
                     int x = (int)(radiusInPixels * Math.Cos(theta));
                     int y = (int)(radiusInPixels * Math.Sin(theta));
 
                     SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
-                    e.Graphics.DrawImage(bitmap, 0, 0);
                     pixelCount++;
+                    e.Graphics.DrawImage(bitmap, 0, 0);
                 }
             }
             else if (methodCircuitNum == 1)
@@ -169,40 +171,64 @@ namespace main
                         SetPixelBlock(cx + x * pixelSize, cy - y * pixelSize, color, pixelSize);
                         pixelCount++;
                     }
+                    e.Graphics.DrawImage(bitmap, 0, 0);
                 }
             }
             else if (methodCircuitNum == 2)
             {
-                // Метод Брезенхема
                 int x = 0;
                 int y = radiusInPixels;
                 int d = 3 - 2 * radiusInPixels;
 
                 while (x <= y)
                 {
-                    double[] angles = {
-                Math.Atan2(y, x), Math.Atan2(y, -x), Math.Atan2(-y, x), Math.Atan2(-y, -x),
-                Math.Atan2(x, y), Math.Atan2(-x, y), Math.Atan2(x, -y), Math.Atan2(-x, -y)
-            };
-
-                    Point[] points = {
-                new Point(cx + x * pixelSize, cy + y * pixelSize),
-                new Point(cx - x * pixelSize, cy + y * pixelSize),
-                new Point(cx + x * pixelSize, cy - y * pixelSize),
-                new Point(cx - x * pixelSize, cy - y * pixelSize),
-                new Point(cx + y * pixelSize, cy + x * pixelSize),
-                new Point(cx - y * pixelSize, cy + x * pixelSize),
-                new Point(cx + y * pixelSize, cy - x * pixelSize),
-                new Point(cx - y * pixelSize, cy - x * pixelSize)
-            };
-
-                    for (int i = 0; i < angles.Length; i++)
+                    // Проверка и отрисовка только в пределах [alpha, beta]
+                    if (IsAngleInRange(Math.Atan2(y, x)))
                     {
-                        if (IsAngleInRange(angles[i]))
-                        {
-                            SetPixelBlock(points[i].X, points[i].Y, color, pixelSize);
-                            pixelCount++;
-                        }
+                        SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(y, -x)))
+                    {
+                        SetPixelBlock(cx - x * pixelSize, cy + y * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(-y, x)))
+                    {
+                        SetPixelBlock(cx + x * pixelSize, cy - y * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(-y, -x)))
+                    {
+                        SetPixelBlock(cx - x * pixelSize, cy - y * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(x, y)))
+                    {
+                        SetPixelBlock(cx + y * pixelSize, cy + x * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(x, -y)))
+                    {
+                        SetPixelBlock(cx - y * pixelSize, cy + x * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(-x, y)))
+                    {
+                        SetPixelBlock(cx + y * pixelSize, cy - x * pixelSize, color, pixelSize);
+                        pixelCount++;
+                    }
+
+                    if (IsAngleInRange(Math.Atan2(-x, -y)))
+                    {
+                        SetPixelBlock(cx - y * pixelSize, cy - x * pixelSize, color, pixelSize);
+                        pixelCount++;
                     }
 
                     x++;
@@ -223,6 +249,7 @@ namespace main
 
             return (pixelCount, arcLength);
         }
+
 
         private void SetPixelBlock(int x, int y, Color color, int size)
         {
@@ -276,6 +303,12 @@ namespace main
                         backInfo = true;
                     else
                         backInfo = false;
+                    break;
+                case Keys.N:
+                    methodCircuitNum = (methodCircuitNum + 1) % 3;
+                    break;
+                case Keys.M:
+                    countAngle = (countAngle + 1) % angle_alpha.Length;
                     break;
             }
             Invalidate();

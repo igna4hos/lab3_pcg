@@ -54,5 +54,11 @@ namespace main
             var myForm2 = new Form3();
             myForm2.Show();
         }
+
+        private void Button3_Click(object sender, EventArgs e)
+        {
+            var myForm3 = new Form4();
+            myForm3.Show();
+        }
     }
 }
