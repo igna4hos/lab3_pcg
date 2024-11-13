@@ -334,14 +334,14 @@ namespace main
                     if (Math.Pow(x - cx, 2) + Math.Pow(y - cy, 2) <= radiusInPixels * radiusInPixels)
                     {
                         // Добавляем соседние пиксели в стек для проверки
-                        stack.Push(new Point(x + 1, y));    // Right
-                        stack.Push(new Point(x - 1, y));    // Left
-                        stack.Push(new Point(x, y + 1));    // Down
-                        stack.Push(new Point(x, y - 1));    // Up
-                        stack.Push(new Point(x + 1, y + 1)); // Bottom-right
-                        stack.Push(new Point(x - 1, y + 1)); // Bottom-left
-                        stack.Push(new Point(x + 1, y - 1)); // Top-right
-                        stack.Push(new Point(x - 1, y - 1)); // Top-left
+                        stack.Push(new Point(x + 1, y));    // Вправо
+                        stack.Push(new Point(x - 1, y));    // Влево
+                        stack.Push(new Point(x, y + 1));    // Вних
+                        stack.Push(new Point(x, y - 1));    // Вверх
+                        stack.Push(new Point(x + 1, y + 1)); // Вверх вправо
+                        stack.Push(new Point(x - 1, y + 1)); // Вверх влево
+                        stack.Push(new Point(x + 1, y - 1)); // Вних вправо
+                        stack.Push(new Point(x - 1, y - 1)); // Вниз влево
                     }
                 }
             }

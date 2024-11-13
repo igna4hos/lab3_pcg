@@ -19,7 +19,7 @@ namespace main
         public Form1()
         {
             InitializeComponent();
-            string[] methodCircuit = { "A", "B", "C" };
+            string[] methodCircuit = { "A", "B", "C" }; 
             string[] methodPainting = { "A", "B", "C" };
             listBox1.Items.AddRange(methodCircuit);
             listBox2.Items.AddRange(methodPainting);
