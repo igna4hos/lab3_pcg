@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -20,20 +21,26 @@ namespace main
         private int offsetX = 0;   // Смещение по X
         private int offsetY = 0;   // Смещение по Y
         private bool showGrid = false; // Флаг для отображения координатной сетки
-        private bool showCoordGrid = false;
+        private bool showCoordGrid = true;
         private bool backInfo;
         private int methodCircuitNum =  0;
         private int countAngle = 0;
-        double[] angle_alpha = { 0, Math.PI / 4 };
-        double[] angle_beta = { -Math.PI / 2, -Math.PI / 3 };
+        private bool testPlay = false;
+        readonly double[] angle_alpha = { 0, Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 2};
+        readonly double[] angle_beta = { -Math.PI / 4, Math.PI, Math.PI / 6, Math.PI, Math.PI / 2 };
 
         public Form3()
         {
             this.ClientSize = new Size(800, 800); // Размер окна
             this.circles = new Circle[]
             {
-                new Circle(0, 0, 5, 100, 180, 50),
-                new Circle(0, 0, 3, 100, 180, 50),
+                new Circle(0, 0, 10, 255, 0, 0),
+                new Circle(0, 0, 50, 255, 127, 0),
+                new Circle(0, 0, 100, 255, 255, 0),
+                new Circle(0, 0, 160, 0, 255, 0),
+                new Circle(0, 0, 225, 0, 0, 255),
+                new Circle(0, 0, 280, 75, 0, 130),
+                new Circle(0, 0, 350, 143, 0, 255),
             };
             this.Paint += new PaintEventHandler(DrawAllCirclesWithGrid);
             this.KeyDown += new KeyEventHandler(OnKeyDown); // Обработка клавиш
@@ -44,12 +51,43 @@ namespace main
             bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
             double alpha = angle_alpha[countAngle]; // начальный угол в радианах
             double beta = angle_beta[countAngle]; // конечный угол в радианах
-            Console.WriteLine($"Количество пикселей: {beta}");
+            int numCircle = 0;
             foreach (var circle in circles)
             {
-                var (pixelCount, arcLength) = DrawCircleWithAngle(circle, alpha, beta, e);
-                Console.WriteLine($"Количество пикселей: {pixelCount}");
-                Console.WriteLine($"Длина дуги: {arcLength} пикселей");
+                var (pixelCount, arcLength, tickDrawCircle) = DrawCircleWithAngle(circle, alpha, beta, e);
+                Console.WriteLine($"Количество пикселей окружности {numCircle}: {pixelCount}");
+                Console.WriteLine($"Длина дуги с радиусом {circle.Radius}: {arcLength} с углом {countAngle}");
+                Console.WriteLine($"Тики выполнения по методу {methodCircuitNum}: {tickDrawCircle}");
+
+                String drawString = $"Количество пикселей окружности {numCircle}: {pixelCount}";
+
+                // Create font and brush.
+                Font drawFont = new Font("Arial", 10);
+                SolidBrush drawBrush = new SolidBrush(Color.Black);
+
+                // Create point for upper-left corner of drawing.
+                float a = 0.0F;
+                float b = 0.0F + (numCircle * 50);
+                // Draw string to screen.
+                e.Graphics.DrawString(drawString, drawFont, drawBrush, a, b);
+
+                String drawString2 = $"Длина дуги с радиусом {circle.Radius}: {arcLength} с углом {countAngle}";
+
+                // Create point for upper-left corner of drawing.
+                float a2 = 0.0F;
+                float b2 = 12.0F + (numCircle * 50);
+                // Draw string to screen.
+                e.Graphics.DrawString(drawString2, drawFont, drawBrush, a2, b2);
+
+                String drawString3 = $"Тики выполнения по методу {methodCircuitNum}: {tickDrawCircle}";
+
+                // Create point for upper-left corner of drawing.
+                float a3 = 0.0F;
+                float b3 = 24.0F + (numCircle * 50);
+                // Draw string to screen.
+                e.Graphics.DrawString(drawString3, drawFont, drawBrush, a3, b3);
+
+                numCircle++;
             }
             if (showGrid && pixelSize == 5) DrawCoordinateGrid(); // Координатная сетка при масштабе 5x
             if (showCoordGrid) DrawGrid();
@@ -102,24 +140,20 @@ namespace main
             }
         }
 
-        private (long pixelCount, double arcLength) DrawCircleWithAngle(Circle circle, double alpha, double beta, PaintEventArgs e)
+        private (long pixelCount, double arcLength, long tickDrawCircle) DrawCircleWithAngle(Circle circle, double alpha, double beta, PaintEventArgs e)
         {
             // Приводим углы к радианам
             alpha = alpha % (2 * Math.PI);
             beta = beta % (2 * Math.PI);
             if (alpha > beta)
             {
-                double temp = alpha;
-                alpha = beta;
-                beta = temp;
+                (beta, alpha) = (alpha, beta);
             }
-
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            pixelCount = 0;
 
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
-            double unitScale = 50; // Коэффициент для перевода условных единиц в пиксели
+            double unitScale = 1; // Коэффициент для перевода условных единиц в пиксели
             int radiusInPixels = (int)(circle.Radius * unitScale);
 
             int cx = centerX + (int)(circle.X * unitScale * pixelSize);
@@ -127,13 +161,23 @@ namespace main
 
             Color color = Color.FromArgb(circle.R, circle.G, circle.B);
 
-            long pixelCount = 0;
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             // Функция для проверки, находится ли угол в диапазоне [alpha, beta]
             bool IsAngleInRange(double angle)
             {
                 angle = angle % (2 * Math.PI);
                 return (alpha <= angle && angle <= beta);
+            }
+
+            void DrawPixels()
+            {
+                if (testPlay)
+                {
+                    e.Graphics.DrawImage(bitmap, 0, 0);
+                    Thread.Sleep(15);
+                }
             }
 
             if (methodCircuitNum == 0)
@@ -146,8 +190,7 @@ namespace main
                     int y = (int)(radiusInPixels * Math.Sin(theta));
 
                     SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
-                    pixelCount++;
-                    e.Graphics.DrawImage(bitmap, 0, 0);
+                    DrawPixels();
                 }
             }
             else if (methodCircuitNum == 1)
@@ -161,17 +204,11 @@ namespace main
                     double angle2 = Math.Atan2(-y, x);
 
                     if (IsAngleInRange(angle1))
-                    {
                         SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(angle2))
-                    {
                         SetPixelBlock(cx + x * pixelSize, cy - y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
-                    e.Graphics.DrawImage(bitmap, 0, 0);
+                    DrawPixels();
                 }
             }
             else if (methodCircuitNum == 2)
@@ -184,52 +221,28 @@ namespace main
                 {
                     // Проверка и отрисовка только в пределах [alpha, beta]
                     if (IsAngleInRange(Math.Atan2(y, x)))
-                    {
                         SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(y, -x)))
-                    {
                         SetPixelBlock(cx - x * pixelSize, cy + y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(-y, x)))
-                    {
                         SetPixelBlock(cx + x * pixelSize, cy - y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(-y, -x)))
-                    {
                         SetPixelBlock(cx - x * pixelSize, cy - y * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(x, y)))
-                    {
                         SetPixelBlock(cx + y * pixelSize, cy + x * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(x, -y)))
-                    {
                         SetPixelBlock(cx - y * pixelSize, cy + x * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(-x, y)))
-                    {
                         SetPixelBlock(cx + y * pixelSize, cy - x * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     if (IsAngleInRange(Math.Atan2(-x, -y)))
-                    {
                         SetPixelBlock(cx - y * pixelSize, cy - x * pixelSize, color, pixelSize);
-                        pixelCount++;
-                    }
 
                     x++;
                     if (d <= 0)
@@ -241,16 +254,18 @@ namespace main
                         y--;
                         d = d + 4 * (x - y) + 10;
                     }
+                    DrawPixels();
                 }
             }
 
             stopwatch.Stop();
+            long tickDrawCircle = stopwatch.ElapsedTicks;
             double arcLength = (beta - alpha) * circle.Radius * unitScale;
 
-            return (pixelCount, arcLength);
+            return (pixelCount, arcLength, tickDrawCircle);
         }
 
-
+        long pixelCount = 0;
         private void SetPixelBlock(int x, int y, Color color, int size)
         {
             for (int dx = 0; dx < size; dx++)
@@ -262,6 +277,7 @@ namespace main
                     if (px >= 0 && px < bitmap.Width && py >= 0 && py < bitmap.Height)
                     {
                         bitmap.SetPixel(px, py, color);
+                        pixelCount++;
                     }
                 }
             }
@@ -309,6 +325,12 @@ namespace main
                     break;
                 case Keys.M:
                     countAngle = (countAngle + 1) % angle_alpha.Length;
+                    break;
+                case Keys.T:
+                    if (!testPlay)
+                        testPlay = true;
+                    else
+                        testPlay = false;
                     break;
             }
             Invalidate();

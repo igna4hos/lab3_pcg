@@ -19,10 +19,10 @@ namespace main
         private int offsetX = 0;   // Смещение по X
         private int offsetY = 0;   // Смещение по Y
         private bool showGrid = false; // Флаг для отображения координатной сетки
-        private bool showCoordGrid = false;
+        private bool showCoordGrid = true;
         private bool backInfo = true;
         private readonly int methodCircuitNum = 1;
-        private int methodPaintingNum = 0;
+        private int methodPaintingNum = 2;
         private int currentCircleIndex = 0; // Индекс текущей окружности
 
         public Form4()
@@ -30,8 +30,11 @@ namespace main
             this.ClientSize = new Size(800, 800); // Размер окна
             this.circles = new Circle[]
             {
-                new Circle(0, 0, 0.8, 139, 69, 19), // Коричневый цвет
-                new Circle(0, 0, 1, 255, 165, 0),
+                new Circle(0, 0, 10, 255, 0, 0),
+                new Circle(0, 0, 30, 255, 127, 0),
+                new Circle(0, 0, 100, 0, 255, 0),
+                new Circle(0, 0, 150, 0, 0, 255),
+                new Circle(0, 0, 200, 75, 0, 130),
             };
             this.Paint += new PaintEventHandler(DrawAllCirclesWithGrid);
             this.KeyDown += new KeyEventHandler(OnKeyDown); // Обработка клавиш
@@ -41,9 +44,32 @@ namespace main
         {
             bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
             Circle circle = circles[currentCircleIndex]; // Рисуем только текущую окружность
-            long tickDrawCircle = DrawCircle(circle);
-            long tickFillCircle = FillCircle(circle); // Вызов закраски
-            e.Graphics.DrawImage(bitmap, 0, 0);
+            DrawCircle(circle);
+            (long tickFillCircle, int pixelCount) = FillCircle(circle); // Вызов закраски
+            Console.WriteLine($"Закрашено пикселей в окружности {currentCircleIndex}: {pixelCount}"); // Выводим количество пикселей
+            Console.WriteLine($"Тики выполнения по методу {methodPaintingNum}: {tickFillCircle}"); // Выводим количество пикселей
+
+            String drawString = $"Закрашено пикселей в окружности {currentCircleIndex}: {pixelCount}";
+
+            // Create font and brush.
+            Font drawFont = new Font("Arial", 10);
+            SolidBrush drawBrush = new SolidBrush(Color.Black);
+
+            // Create point for upper-left corner of drawing.
+            float a = 0.0F;
+            float b = 0.0F;
+            // Draw string to screen.
+            e.Graphics.DrawString(drawString, drawFont, drawBrush, a, b);
+
+            String drawString2 = $"Тики выполнения по методу {methodPaintingNum}: {tickFillCircle}";
+
+            // Create point for upper-left corner of drawing.
+            float a2 = 0.0F;
+            float b2 = 12.0F;
+            // Draw string to screen.
+            e.Graphics.DrawString(drawString2, drawFont, drawBrush, a2, b2);
+
+
             if (showGrid && pixelSize == 5) DrawCoordinateGrid(); // Координатная сетка при масштабе 5x
             if (showCoordGrid) DrawGrid();
             e.Graphics.DrawImage(bitmap, 0, 0);
@@ -103,7 +129,7 @@ namespace main
 
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
-            double unitScale = 50; // Коэффициент для перевода условных единиц в пиксели
+            double unitScale = 1; // Коэффициент для перевода условных единиц в пиксели
             int radiusInPixels = (int)(circle.Radius * unitScale);
 
             int cx = centerX + (int)(circle.X * unitScale * pixelSize);
@@ -168,7 +194,7 @@ namespace main
             return tickDrawCircle;
         }
 
-        private long FillCircle(Circle circle)
+        private (long tickFillCircle, int pixelCount) FillCircle(Circle circle)
         {
             pixelCount = 0; // Сброс счётчика пикселей перед началом закраски
             Stopwatch stopwatch2 = new Stopwatch();
@@ -188,15 +214,14 @@ namespace main
 
             stopwatch2.Stop();
             long tickFillCircle = stopwatch2.ElapsedTicks;
-            Console.WriteLine($"Закрашено пикселей: {pixelCount}"); // Выводим количество пикселей
-            return (tickFillCircle);
+            return (tickFillCircle, pixelCount);
         }
 
         private void FillCircleSeed4Connected(Circle circle)
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
-            double unitScale = 50; // Коэффициент для перевода условных единиц в пиксели
+            double unitScale = 1; // Коэффициент для перевода условных единиц в пиксели
             int radiusInPixels = (int)(circle.Radius * unitScale);
 
             int cx = centerX + (int)(circle.X * unitScale * pixelSize);
@@ -247,7 +272,7 @@ namespace main
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
-            double unitScale = 50;
+            double unitScale = 1;
             int radiusInPixels = (int)(circle.Radius * unitScale);
 
             int cx = centerX + (int)(circle.X * unitScale * pixelSize);
@@ -304,7 +329,7 @@ namespace main
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
-            double unitScale = 50; // Коэффициент для перевода условных единиц в пиксели
+            double unitScale = 1; // Коэффициент для перевода условных единиц в пиксели
             int radiusInPixels = (int)(circle.Radius * unitScale);
 
             int cx = centerX + (int)(circle.X * unitScale * pixelSize);
