@@ -26,8 +26,8 @@ namespace main
         private int methodCircuitNum =  0;
         private int countAngle = 0;
         private bool testPlay = false;
-        readonly double[] angle_alpha = { 0, Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 2};
-        readonly double[] angle_beta = { -Math.PI / 4, Math.PI, Math.PI / 6, Math.PI, Math.PI / 2 };
+        readonly double[] angle_alpha = { 0, Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 2, -Math.PI };
+        readonly double[] angle_beta = { -Math.PI / 4, Math.PI, Math.PI / 6, Math.PI, Math.PI / 2, Math.PI };
 
         public Form3()
         {

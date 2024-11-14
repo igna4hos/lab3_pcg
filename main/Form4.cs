@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.Threading;
 
 namespace main
 {
@@ -22,8 +23,9 @@ namespace main
         private bool showCoordGrid = true;
         private bool backInfo = true;
         private readonly int methodCircuitNum = 1;
-        private int methodPaintingNum = 2;
+        private int methodPaintingNum = 0;
         private int currentCircleIndex = 0; // Индекс текущей окружности
+        private bool testPlay = false;
 
         public Form4()
         {
@@ -44,8 +46,10 @@ namespace main
         {
             bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
             Circle circle = circles[currentCircleIndex]; // Рисуем только текущую окружность
+            if (methodPaintingNum == 0 && circle.Radius > 30)
+                methodPaintingNum++;
             DrawCircle(circle);
-            (long tickFillCircle, int pixelCount) = FillCircle(circle); // Вызов закраски
+            (long tickFillCircle, int pixelCount) = FillCircle(circle, e); // Вызов закраски
             Console.WriteLine($"Закрашено пикселей в окружности {currentCircleIndex}: {pixelCount}"); // Выводим количество пикселей
             Console.WriteLine($"Тики выполнения по методу {methodPaintingNum}: {tickFillCircle}"); // Выводим количество пикселей
 
@@ -194,22 +198,22 @@ namespace main
             return tickDrawCircle;
         }
 
-        private (long tickFillCircle, int pixelCount) FillCircle(Circle circle)
+        private (long tickFillCircle, int pixelCount) FillCircle(Circle circle, PaintEventArgs e)
         {
             pixelCount = 0; // Сброс счётчика пикселей перед началом закраски
             Stopwatch stopwatch2 = new Stopwatch();
             stopwatch2.Start();
             if (methodPaintingNum == 0)
             {
-                FillCircleSeed4Connected(circle);
+                FillCircleSeed4Connected(circle, e);
             }
             else if (methodPaintingNum == 1)
             {
-                FillCircleRowByRow(circle); // Построчное заполнение
+                FillCircleRowByRow(circle, e); // Построчное заполнение
             }
             else if (methodPaintingNum == 2)
             {
-                FillCircleStackModified8Connected(circle); // Модифицированный стэковый алгоритм для 8-связной области
+                FillCircleStackModified8Connected(circle, e); // Модифицированный стэковый алгоритм для 8-связной области
             }
 
             stopwatch2.Stop();
@@ -217,7 +221,7 @@ namespace main
             return (tickFillCircle, pixelCount);
         }
 
-        private void FillCircleSeed4Connected(Circle circle)
+        private void FillCircleSeed4Connected(Circle circle, PaintEventArgs e)
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
@@ -241,10 +245,10 @@ namespace main
             if (oldColor.ToArgb() == targetColor.ToArgb()) return;
 
             // Запуск рекурсивной функции для заполнения области
-            Fill(cx, cy, radiusInPixels, oldColor, targetColor, cx, cy);
+            Fill(cx, cy, radiusInPixels, oldColor, targetColor, cx, cy, e);
         }
 
-        private void Fill(int x, int y, int radiusInPixels, Color oldColor, Color targetColor, int cx, int cy)
+        private void Fill(int x, int y, int radiusInPixels, Color oldColor, Color targetColor, int cx, int cy, PaintEventArgs e)
         {
             // Проверка, чтобы не выйти за границы изображения
             if (x < 0 || x >= bitmap.Width || y < 0 || y >= bitmap.Height) return;
@@ -258,17 +262,23 @@ namespace main
             // Закрашиваем текущий пиксель
             SetPixelBlock(x, y, targetColor, pixelSize);
 
+            if (testPlay)
+            {
+                e.Graphics.DrawImage(bitmap, 0, 0);
+                Thread.Sleep(15);
+            }
+
             // Рекурсивный вызов для 4-связных соседей
-            Fill(x + 1, y, radiusInPixels, oldColor, targetColor, cx, cy); // Правый сосед
-            Fill(x - 1, y, radiusInPixels, oldColor, targetColor, cx, cy); // Левый сосед
-            Fill(x, y + 1, radiusInPixels, oldColor, targetColor, cx, cy); // Нижний сосед
-            Fill(x, y - 1, radiusInPixels, oldColor, targetColor, cx, cy); // Верхний сосед
+            Fill(x + 1, y, radiusInPixels, oldColor, targetColor, cx, cy, e); // Правый сосед
+            Fill(x - 1, y, radiusInPixels, oldColor, targetColor, cx, cy, e); // Левый сосед
+            Fill(x, y + 1, radiusInPixels, oldColor, targetColor, cx, cy, e); // Нижний сосед
+            Fill(x, y - 1, radiusInPixels, oldColor, targetColor, cx, cy, e); // Верхний сосед
         }
 
 
 
 
-        private void FillCircleStackModified8Connected(Circle circle)
+        private void FillCircleStackModified8Connected(Circle circle, PaintEventArgs e)
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
@@ -307,6 +317,12 @@ namespace main
                     // Закрашиваем текущий пиксель
                     SetPixelBlock(x, y, targetColor, pixelSize);
 
+                    if (testPlay)
+                    {
+                        e.Graphics.DrawImage(bitmap, 0, 0);
+                        Thread.Sleep(15);
+                    }
+
                     // Проверка на границу радиуса круга, чтобы не выходить за его пределы
                     if (Math.Pow(x - cx, 2) + Math.Pow(y - cy, 2) <= radiusInPixels * radiusInPixels)
                     {
@@ -325,7 +341,7 @@ namespace main
         }
 
 
-        private void FillCircleRowByRow(Circle circle)
+        private void FillCircleRowByRow(Circle circle, PaintEventArgs e)
         {
             int centerX = ClientSize.Width / 2 + offsetX * pixelSize;
             int centerY = ClientSize.Height / 2 + offsetY * pixelSize;
@@ -342,6 +358,12 @@ namespace main
                 for (int x = -dx; x <= dx; x++)
                 {
                     SetPixelBlock(cx + x * pixelSize, cy + y * pixelSize, color, pixelSize);
+
+                    if (testPlay)
+                    {
+                        e.Graphics.DrawImage(bitmap, 0, 0);
+                        Thread.Sleep(15);
+                    }
                 }
             }
         }
@@ -405,6 +427,12 @@ namespace main
                     break;
                 case Keys.V:
                     currentCircleIndex = (currentCircleIndex + 1) % circles.Length; // Переход к следующей окружности
+                    break;
+                case Keys.T:
+                    if (!testPlay)
+                        testPlay = true;
+                    else
+                        testPlay = false;
                     break;
             }
             Invalidate();
